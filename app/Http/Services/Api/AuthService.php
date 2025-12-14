@@ -19,12 +19,19 @@ class AuthService
             throw new AuthenticationException('Invalid credentials');
         }
 
-        // Create a personal access token
-        $token = $user->createToken('api-token')->plainTextToken;
+        // Create token
+        $accessToken = $user->createToken('access-token', ['access'])->plainTextToken;
+        $refreshToken = $user->createToken('refresh-token', ['refresh'], now()->addDays(30))->plainTextToken;
 
         return [
-            'user'  => $user,
-            'token' => $token,
-        ];
+            'user' => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+            ],
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
+            'token_type'   => 'Bearer',
+        ];        
     }
 }

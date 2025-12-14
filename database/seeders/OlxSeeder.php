@@ -11,41 +11,39 @@ use App\Models\CategoryFieldOption;
 
 class OlxSeeder extends Seeder
 {
+    use Illuminate\Support\Facades\DB;
+
     public function run()
     {
         $this->command->info('Starting OLX Seeder...');
-
         $categories = $this->fetchCategories();
-
         if (empty($categories)) {
             $this->command->warn("No categories fetched. Seeder finished.");
             return;
         }
 
         foreach ($categories as $rawCategory) {
-            $category = $this->processCategory($rawCategory);
-
-            if (!$category) {
-                continue;
-            }
-
-            $fields = $this->fetchCategoryFields($category->external_id);
-
-            if (empty($fields)) {
-                $this->command->warn(
-                    "No fields found for category {$category->external_id}"
-                );
-                continue;
-            }
-
-            $this->processFields($category, $fields);
+            DB::transaction(function () use ($rawCategory) {
+                $category = $this->processCategory($rawCategory);
+                if (!$category) {
+                    return;
+                }
+                $fields = $this->fetchCategoryFields($category->external_id);
+                if (empty($fields)) {
+                    $this->command->warn(
+                        "No fields found for category {$category->external_id}"
+                    );
+                    return;
+                }
+                $this->processFields($category, $fields);
+            });
         }
-
         $this->command->info("OLX seeder finished successfully.");
     }
 
+
     /**
-     * 🔹 Fetch categories from OLX (cached daily)
+     * Fetch categories from OLX (cached daily)
      */
     protected function fetchCategories(): array
     {
@@ -84,7 +82,7 @@ class OlxSeeder extends Seeder
     }
 
     /**
-     * 🔹 Save / update category
+     * Save / update category
      */
     protected function processCategory(array $rawCategory): ?Category
     {
@@ -111,7 +109,7 @@ class OlxSeeder extends Seeder
     }
 
     /**
-     * 🔹 Fetch category fields (cached per category daily)
+     * Fetch category fields (cached per category daily)
      */
     protected function fetchCategoryFields(int $externalId): array
     {
@@ -174,7 +172,7 @@ class OlxSeeder extends Seeder
     }
 
     /**
-     * 🔹 Save / update category fields and options
+     * Save / update category fields and options
      */
     protected function processFields(Category $category, array $fields): void
     {
